@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "stdlib.h": "c",
+        "rcl.h": "c",
+        "error_handling.h": "c",
+        "int32.h": "c",
+        "int32__type_support.h": "c",
+        "string.h": "c",
+        "string__type_support.h": "c"
+    }
+}
