@@ -16,6 +16,8 @@ add_executable(pico_micro_ros_example
 target_link_libraries(pico_micro_ros_example
     pico_stdlib
     microros
+    hardware_pwm
+    ws2812_leds
 )
 
 target_include_directories(pico_micro_ros_example PUBLIC
@@ -34,3 +36,5 @@ add_compile_definitions(PICO_STDIO_DEFAULT_CRLF=0)
 
 # Generate UF2
 pico_add_extra_outputs(pico_micro_ros_example)
+
+add_subdirectory(ws2812_leds)
