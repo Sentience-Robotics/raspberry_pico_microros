@@ -17,14 +17,12 @@
 #include "ws2812_leds/ws2812.h"
 #include <rmw_microros/rmw_microros.h>
 
-const uint LED_PIN = 25;
-
+// Function to set servo angle using PWM (not working properly)
 void set_servo_angle(uint pin, int angle) {
     uint slice = pwm_gpio_to_slice_num(pin);
     pwm_set_gpio_level(pin, 500 + (angle * 1000 / 180)); // Pulse width in µs mapped to 0.5ms - 2.5ms
     pwm_set_enabled(slice, true);
 }
-
 
 rcl_publisher_t publisher;
 rcl_subscription_t subscriber;
@@ -45,20 +43,10 @@ void subscription_callback(const void * msgin);
 
 void subscription_callback(const void * msgin)
 {
-    static int count = 0;
-    count += 1;
-    ws2812_set_rgb(2, 255, 255, 0);
-    if (msgin == NULL)
-        ws2812_set_rgb(2, count, 0, 25);
-        return;
-    ws2812_set_rgb(2, 10, 0, 0);
     const std_msgs__msg__Int32 * incoming = (const std_msgs__msg__Int32 *)msgin;
-    int color = incoming->data;
-    ws2812_set_rgb(2, 0, color, color);
-    // const std_msgs__msg__String * msg = (const std_msgs__msg__String *)msgin;
-    // int angle = atoi(msg->data.data);
-    // set_servo_angle(2, angle);
-
+    int value = incoming->data;
+    ws2812_set_rgb(2, 0, value, value);
+    set_servo_angle(3, value);
 
     // // Envoyer un message confirmant la réception
     // msg_int.data = angle;
@@ -77,8 +65,6 @@ int main()
     ws2812_init(pio1, 18, 800000.0f);
     ws2812_clear();
 
-    // sleep_ms(1000);
-
 
     printf("Entering program...\n");
     rmw_uros_set_custom_transport(
@@ -90,18 +76,19 @@ int main()
 		pico_serial_transport_read
 	);
 
-    // gpio_init(LED_PIN);
-    // gpio_set_dir(LED_PIN, GPIO_OUT);
-    
     // Servo
     gpio_set_function(1, GPIO_FUNC_PWM);
     gpio_set_function(2, GPIO_FUNC_PWM);
+    gpio_set_function(3, GPIO_FUNC_PWM);
     uint slice1 = pwm_gpio_to_slice_num(1);
     uint slice2 = pwm_gpio_to_slice_num(2);
+    uint slice3 = pwm_gpio_to_slice_num(3);
     pwm_set_wrap(slice1, 20000); // For ~50Hz PWM (20ms period)
     pwm_set_clkdiv(slice1, 125.0); // Set clock divisor for 1us resolution
     pwm_set_wrap(slice2, 20000);
     pwm_set_clkdiv(slice2, 125.0);
+    pwm_set_wrap(slice3, 20000);
+    pwm_set_clkdiv(slice3, 125.0);
 
     rcl_timer_t timer;
     rcl_node_t node;
@@ -112,7 +99,7 @@ int main()
     allocator = rcl_get_default_allocator();
 
     // Wait for agent successful ping for 2 minutes.
-    const int timeout_ms = 1000; 
+    const int timeout_ms = 1000;
     const uint8_t attempts = 120;
 
     rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
@@ -133,13 +120,12 @@ int main()
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
         "rp2040_topic");
-        
 
     // Initialize subscriber
     ret = rclc_subscription_init_default(
         &subscriber,
         &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String),
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
         "rp2040_listener_topic"
     );
 
